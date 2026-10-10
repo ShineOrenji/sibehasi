@@ -68,12 +68,15 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 });
 
 // =============================
-// KELOLA AKUN (Admin & Ketua)
+// KELOLA AKUN (Bisa diakses Admin & Ketua)
 // =============================
-Route::middleware('auth')->group(function () {
-    Route::get('/kelola-akun', [\App\Http\Controllers\Admin\AkunController::class, 'index'])->name('akun.index');
-    Route::post('/kelola-akun', [\App\Http\Controllers\Admin\AkunController::class, 'store'])->name('akun.store');
-    Route::post('/kelola-akun/{id}/reset', [\App\Http\Controllers\Admin\AkunController::class, 'resetPassword'])->name('akun.reset');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/kelola-akun', [\App\Http\Controllers\Admin\AkunController::class, 'index'])->name('admin.akun.index');
+    Route::post('/kelola-akun', [\App\Http\Controllers\Admin\AkunController::class, 'store'])->name('admin.akun.store');
+    Route::get('/kelola-akun/{id}/edit', [\App\Http\Controllers\Admin\AkunController::class, 'edit'])->name('admin.akun.edit');
+    Route::put('/kelola-akun/{id}', [\App\Http\Controllers\Admin\AkunController::class, 'update'])->name('admin.akun.update');
+    Route::delete('/kelola-akun/{id}', [\App\Http\Controllers\Admin\AkunController::class, 'destroy'])->name('admin.akun.destroy');
+    Route::post('/kelola-akun/{id}/reset', [\App\Http\Controllers\Admin\AkunController::class, 'resetPassword'])->name('admin.akun.reset');
 });
 
 // =============================

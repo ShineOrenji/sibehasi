@@ -61,9 +61,9 @@
                             <i class="fa-regular fa-user mr-2 w-4 text-gray-400"></i> Profil Saya
                         </x-dropdown-link>
                         @if(Auth::user()->role === 'admin' || Auth::user()->role === 'ketua')
-                            <x-dropdown-link :href="route('akun.index')" class="font-medium text-blue-600">
-                                <i class="fa-solid fa-users-gear mr-2 w-4"></i> Kelola Akun
-                            </x-dropdown-link>
+                            <x-responsive-nav-link :href="route('admin.akun.index')" class="rounded-lg font-semibold text-blue-600 hover:text-blue-700">
+                                <i class="fa-solid fa-users-gear mr-2 w-5 text-center"></i> Kelola Akun
+                            </x-responsive-nav-link>
                         @endif
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -132,7 +132,7 @@
                     <i class="fa-regular fa-user mr-2 w-5 text-center"></i> Profil Saya
                 </x-responsive-nav-link>
                 @if(Auth::user()->role === 'admin' || Auth::user()->role === 'ketua')
-                    <x-responsive-nav-link :href="route('akun.index')" class="rounded-lg font-semibold text-blue-600 hover:text-blue-700">
+                    <x-responsive-nav-link :href="route('admin.akun.index')" class="rounded-lg font-semibold text-blue-600">
                         <i class="fa-solid fa-users-gear mr-2 w-5 text-center"></i> Kelola Akun
                     </x-responsive-nav-link>
                 @endif

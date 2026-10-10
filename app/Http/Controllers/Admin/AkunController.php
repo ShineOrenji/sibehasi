@@ -13,10 +13,10 @@ class AkunController extends Controller
 {
     public function index()
     {
-        // Fitur ini hanya boleh diakses Admin atau Ketua
         if (Auth::user()->role === 'mahasiswa') abort(403);
         
-        $users = User::with('anggota')->where('role', 'mahasiswa')->orderBy('name', 'asc')->get();
+        // Tampilkan akun Mahasiswa/Anggota dan Ketua (Admin tidak ditampilkan agar tidak tak sengaja dihapus)
+        $users = User::with('anggota')->whereIn('role', ['mahasiswa', 'ketua'])->orderBy('name', 'asc')->get();
         return view('admin.akun.index', compact('users'));
     }
 
@@ -25,7 +25,9 @@ class AkunController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
-            'nim' => 'required|string|min:7|max:8|unique:anggota,nim', // Validasi 7-8 digit
+            'nim' => 'required|string|min:7|max:8|unique:anggota,nim',
+            'angkatan' => 'required|integer',
+            'role' => 'required|in:mahasiswa,ketua',
             'password' => 'required|min:8',
         ]);
 
@@ -33,16 +35,73 @@ class AkunController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'mahasiswa',
+            'role' => $request->role,
         ]);
 
-        \App\Models\Anggota::create([
+        Anggota::create([
             'user_id' => $user->id,
             'nim' => $request->nim,
-            'status_aktif' => 'aktif',
+            'angkatan' => $request->angkatan,
         ]);
 
-        return back()->with('success', 'Akun mahasiswa berhasil dibuat!');
+        return back()->with('success', 'Akun berhasil dibuat!');
+    }
+
+    public function edit($id)
+    {
+        if (Auth::user()->role === 'mahasiswa') abort(403);
+        $user = User::with('anggota')->findOrFail($id);
+        return view('admin.akun.edit', compact('user'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            // Validasi ini mengecualikan user_id milik akun ini sendiri
+            'nim' => 'required|string|min:7|max:8|unique:anggota,nim,' . $user->id . ',user_id',
+            'angkatan' => 'required|integer',
+            'role' => 'required|in:mahasiswa,ketua',
+        ]);
+
+        // 1. Update data akun login
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'role' => $request->role,
+        ]);
+
+        // 2. Update ATAU Buat Baru data profil anggota (Penyelamat untuk akun lama)
+        \App\Models\Anggota::updateOrCreate(
+            ['user_id' => $user->id], // Cari berdasarkan user_id ini
+            [
+                'nim' => $request->nim,       // Jika ketemu (atau baru), isi NIM ini
+                'angkatan' => $request->angkatan, // Isi Angkatan ini
+            ]
+        );
+
+        return redirect()->route('admin.akun.index')->with('success', 'Data akun berhasil diperbarui!');
+    }
+
+    public function destroy($id)
+    {
+        $user = User::with('anggota')->findOrFail($id);
+        
+        // PROTEKSI KEUANGAN: Cek apakah user ini sudah pernah bayar kas
+        if ($user->anggota && \App\Models\PembayaranIuran::where('anggota_id', $user->anggota->id)->where('status', 'sukses')->exists()) {
+            return back()->with('error', 'Gagal! Akun ini tidak bisa dihapus karena sudah memiliki riwayat pembayaran LUNAS. (Data keuangan harus permanen).');
+        }
+
+        // Hapus data
+        if ($user->anggota) {
+            $user->anggota()->delete();
+        }
+        $user->delete();
+
+        return back()->with('success', 'Akun berhasil dihapus permanen.');
     }
 
     public function resetPassword(Request $request, $id)
