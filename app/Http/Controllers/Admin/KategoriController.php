@@ -10,7 +10,8 @@ class KategoriController extends Controller
 {
     public function index()
     {
-        $kategori = KategoriTransaksi::orderBy('jenis', 'asc')->orderBy('nama_kategori', 'asc')->get();
+        $kategori = \App\Models\KategoriTransaksi::where('nama_kategori', '!=', 'Tidak Dikategorikan')->latest()->get();
+        
         return view('admin.kategori.index', compact('kategori'));
     }
 
@@ -31,14 +32,23 @@ class KategoriController extends Controller
 
     public function destroy($id)
     {
-        $kategori = KategoriTransaksi::findOrFail($id);
-        
-        // Proteksi jika kategori sudah dipakai di transaksi atau tagihan
-        if (\App\Models\BukuKas::where('kategori_id', $id)->exists() || \App\Models\PeriodeIuran::where('kategori_id', $id)->exists()) {
-            return back()->with('error', 'Gagal! Kategori ini sedang digunakan dalam transaksi atau tagihan.');
+        // 1. Buat atau ambil Kategori Penyelamat secara otomatis
+        $fallback = \App\Models\KategoriTransaksi::firstOrCreate([
+            'nama_kategori' => 'Tidak Dikategorikan'
+        ]);
+
+        // Cegah admin menghapus kategori penyelamat ini
+        if ($id == $fallback->id) {
+            return back()->with('error', 'Gagal! Kategori sistem "Tidak Dikategorikan" tidak boleh dihapus.');
         }
 
-        $kategori->delete();
-        return back()->with('success', 'Kategori berhasil dihapus.');
+        // 2. Pindahkan semua data ke kategori penyelamat (Bukan di-NULL-kan)
+        \App\Models\BukuKas::where('kategori_id', $id)->update(['kategori_id' => $fallback->id]);
+        \App\Models\PeriodeIuran::where('kategori_id', $id)->update(['kategori_id' => $fallback->id]);
+        
+        // 3. Baru hapus kategorinya dengan aman
+        \App\Models\KategoriTransaksi::destroy($id);
+        
+        return back()->with('success', 'Kategori dihapus! Riwayat transaksi sebelumnya diamankan ke "Tidak Dikategorikan".');
     }
 }

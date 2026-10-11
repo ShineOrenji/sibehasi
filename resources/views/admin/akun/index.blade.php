@@ -19,8 +19,9 @@
                     <div class="mb-4">
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Role Jabatan</label>
                         <select name="role" class="w-full border-gray-300 rounded-lg shadow-sm" required>
-                            <option value="mahasiswa">Anggota Biasa</option>
+                            <option value="admin">Admin</option>
                             <option value="ketua">Ketua HIMASI</option>
+                            <option value="mahasiswa">Anggota Biasa</option>
                         </select>
                     </div>
                     <div class="mb-4">
@@ -33,7 +34,12 @@
                     </div>
                     <div class="mb-4">
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Angkatan (Tahun)</label>
-                        <input type="number" name="angkatan" class="w-full border-gray-300 rounded-lg shadow-sm" required placeholder="Contoh: 2024">
+                        <select name="angkatan" class="w-full border-gray-300 rounded-lg shadow-sm" required>
+                            <option value="">-- Pilih Angkatan --</option>
+                            @for($i = date('Y'); $i >= 2021; $i--)
+                                <option value="{{ $i }}">{{ $i }}</option>
+                            @endfor
+                        </select>
                     </div>
                     <div class="mb-4">
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
@@ -41,7 +47,7 @@
                     </div>
                     <div class="mb-5">
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Password Awal</label>
-                        <input type="text" name="password" value="password123" class="w-full border-gray-300 rounded-lg shadow-sm text-gray-500" required>
+                        <input type="text" name="password" value="himasi26" class="w-full border-gray-300 rounded-lg shadow-sm text-gray-500" required>
                     </div>
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition">Buat Akun</button>
                 </form>
@@ -75,9 +81,9 @@
                                 <td class="p-3">
                                     <div class="flex items-center justify-end gap-2">
                                         <!-- Tombol Reset Pass -->
-                                        <form action="{{ route('admin.akun.reset', $u->id) }}" method="POST" onsubmit="return confirm('Reset password akun ini ke default (password123)?');">
+                                        <form action="{{ route('admin.akun.reset', $u->id) }}" method="POST" onsubmit="return confirm('Reset password akun ini ke default (himasi26)?');">
                                             @csrf
-                                            <input type="hidden" name="password" value="password123">
+                                            <input type="hidden" name="password" value="himasi26">
                                             <button type="submit" title="Reset Password" class="text-xs bg-gray-100 text-gray-600 hover:bg-gray-200 px-2.5 py-1.5 rounded-lg font-semibold transition">
                                                 <i class="fa-solid fa-key"></i>
                                             </button>

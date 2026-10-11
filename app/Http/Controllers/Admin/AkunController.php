@@ -16,7 +16,7 @@ class AkunController extends Controller
         if (Auth::user()->role === 'mahasiswa') abort(403);
         
         // Tampilkan akun Mahasiswa/Anggota dan Ketua (Admin tidak ditampilkan agar tidak tak sengaja dihapus)
-        $users = User::with('anggota')->whereIn('role', ['mahasiswa', 'ketua'])->orderBy('name', 'asc')->get();
+        $users = User::with('anggota')->whereIn('role', ['ketua', 'mahasiswa'])->orderBy('name', 'asc')->get();
         return view('admin.akun.index', compact('users'));
     }
 
@@ -25,9 +25,9 @@ class AkunController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
-            'nim' => 'required|string|min:7|max:8|unique:anggota,nim',
+            'nim' => 'nullable|string|min:7|max:8|unique:anggota,nim',
             'angkatan' => 'required|integer',
-            'role' => 'required|in:mahasiswa,ketua',
+            'role' => 'required|in:admin,mahasiswa,ketua',
             'password' => 'required|min:8',
         ]);
 
@@ -49,9 +49,9 @@ class AkunController extends Controller
 
     public function edit($id)
     {
-        if (Auth::user()->role === 'mahasiswa') abort(403);
-        $user = User::with('anggota')->findOrFail($id);
-        return view('admin.akun.edit', compact('user'));
+        $user = \App\Models\User::findOrFail($id); 
+        $akun = $user; 
+        return view('admin.akun.edit', compact('user', 'akun'));
     }
 
     public function update(Request $request, $id)
@@ -61,8 +61,7 @@ class AkunController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
-            // Validasi ini mengecualikan user_id milik akun ini sendiri
-            'nim' => 'required|string|min:7|max:8|unique:anggota,nim,' . $user->id . ',user_id',
+            'nim' => 'nullable|string|min:7|max:8|unique:anggota,nim,' . $user->id . ',user_id',
             'angkatan' => 'required|integer',
             'role' => 'required|in:mahasiswa,ketua',
         ]);

@@ -19,10 +19,9 @@
 
                 <div class="mb-4">
                     <label class="block text-sm font-medium mb-1">Periode Iuran</label>
-                    <select name="periode_id" class="w-full border-gray-300 rounded-md shadow-sm" required>
-                        <option value="">-- Pilih Periode --</option>
-                        @foreach($periode as $p)
-                            <option value="{{ $p->id }}">{{ $p->nama_periode }} - Rp{{ number_format($p->nominal,0,',','.') }}</option>
+                    <select name="periode_id" class="w-full border-gray-300 rounded-lg">
+                        @foreach(\App\Models\PeriodeIuran::where('status', 'aktif')->get() as $p)
+                            <option value="{{ $p->id }}">{{ $p->nama_periode }} - Rp{{ number_format($p->nominal_akhir, 0, ',', '.') }}</option>
                         @endforeach
                     </select>
                 </div>

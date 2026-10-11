@@ -30,12 +30,13 @@
                             </select>
                         </div>
                         <div class="mb-4">
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Tagihan / Acara</label>
-                            <input type="text" name="nama_periode" placeholder="Contoh: MABIM 2026 / Kas Nov" class="w-full border-gray-300 rounded-lg shadow-sm" required>
-                        </div>
-                        <div class="mb-4">
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Nominal (Rp)</label>
                             <input type="number" name="nominal" placeholder="Contoh: 50000" class="w-full border-gray-300 rounded-lg shadow-sm" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Denda Keterlambatan (Rp)</label>
+                            <input type="number" name="denda" value="0" class="w-full border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Contoh: 5000">
+                            <p class="text-[10px] text-gray-500 mt-1">Kosongkan atau isi 0 jika tagihan ini tidak ada denda.</p>
                         </div>
                         <div class="grid grid-cols-2 gap-4 mb-5">
                             <div>

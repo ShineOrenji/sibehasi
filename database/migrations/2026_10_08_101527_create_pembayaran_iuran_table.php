@@ -6,33 +6,28 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('pembayaran_iuran', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('anggota_id')->constrained('anggota')->cascadeOnDelete();
-            $table->foreignId('periode_id')->constrained('periode_iuran')->cascadeOnDelete();
-            $table->unsignedBigInteger('nominal_bayar');
-            $table->dateTime('tanggal_bayar')->nullable();
-            $table->enum('metode_pembayaran', ['cash', 'online']);
-            $table->enum('status', ['pending', 'sukses', 'gagal', 'kadaluarsa'])->default('pending');
+            // Relasi
+            $table->foreignId('anggota_id')->constrained('anggota')->onDelete('cascade');
+            $table->foreignId('periode_id')->constrained('periode_iuran')->onDelete('cascade');
             
-            // Data dari Midtrans
-            $table->string('midtrans_order_id')->unique()->nullable();
-            $table->string('midtrans_transaction_id')->nullable();
+            // Detail Transaksi Bersih (Tanpa Midtrans)
+            $table->integer('nominal_bayar');
+            $table->dateTime('tanggal_bayar');
+            $table->string('metode_pembayaran')->default('qris'); // 'qris' atau 'cash'
+            $table->string('bukti_bayar')->nullable(); // Untuk menyimpan nama file foto SS
+            $table->enum('status', ['pending', 'sukses', 'tolak'])->default('pending');
             
-            // Admin yang mencatat jika bayar cash (Set null jika admin dihapus, transaksi tetap aman)
-            $table->foreignId('admin_id')->nullable()->constrained('users')->nullOnDelete();
+            // Admin yang mengkonfirmasi
+            $table->foreignId('admin_id')->nullable()->constrained('users')->onDelete('set null');
+            
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('pembayaran_iuran');

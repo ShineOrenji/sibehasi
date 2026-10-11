@@ -49,12 +49,16 @@
                     <a href="{{ route('admin.laporan.pdf', ['bulan' => $bulan, 'tahun' => $tahun]) }}" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center transition">
                         📄 Export PDF
                     </a>
+                    <a href="{{ route('admin.laporan.excel') }}" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-sm transition shadow-sm">
+                        <i class="fa-solid fa-file-excel mr-1"></i> Export Excel
+                    </a>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead>
                             <tr class="bg-white border-b border-gray-100 text-xs uppercase text-gray-500">
                                 <th class="p-4 font-semibold">Tanggal</th>
+                                <th class="p-4 font-semibold">Nama</th>
                                 <th class="p-4 font-semibold">Keterangan</th>
                                 <th class="p-4 font-semibold">Kategori</th>
                                 <th class="p-4 font-semibold text-right">Pemasukan</th>
@@ -65,6 +69,9 @@
                             @forelse($transaksi as $t)
                             <tr class="hover:bg-gray-50">
                                 <td class="p-4 text-sm text-gray-600">{{ \Carbon\Carbon::parse($t->tanggal_transaksi)->format('d/m/Y') }}</td>
+                                <td class="p-4 text-sm font-bold text-gray-900">
+                                    {{ $t->pembayaran->anggota->user->name ?? 'Admin (Kas Umum)' }}
+                                </td>
                                 <td class="p-4 text-sm font-medium text-gray-800">{{ $t->keterangan }}</td>
                                 <td class="p-4 text-sm text-gray-500">{{ $t->kategori->nama_kategori ?? '-' }}</td>
                                 <td class="p-4 text-sm font-bold text-emerald-600 text-right">

@@ -50,4 +50,16 @@ class LaporanController extends Controller
         
         return $pdf->download('Laporan_Keuangan_HIMASI_' . $namaBulan . '.pdf');
     }
+
+    public function exportExcel() {
+        $transaksi = \App\Models\BukuKas::with('pembayaran.anggota.user')->orderBy('tanggal_transaksi', 'asc')->get();
+        header("Content-type: application/vnd-ms-excel");
+        header("Content-Disposition: attachment; filename=Laporan_Keuangan_HIMASI.xls");
+        echo '<table border="1"><tr><th style="background:#e2e8f0;">Tanggal</th><th style="background:#e2e8f0;">Nama Anggota</th><th style="background:#e2e8f0;">Keterangan</th><th style="background:#e2e8f0;">Jenis</th><th style="background:#e2e8f0;">Nominal (Rp)</th></tr>';
+        foreach ($transaksi as $t) {
+            $nama = ($t->pembayaran && $t->pembayaran->anggota && $t->pembayaran->anggota->user) ? $t->pembayaran->anggota->user->name : 'Kas Internal/Admin';
+            echo '<tr><td>' . $t->tanggal_transaksi . '</td><td>' . $nama . '</td><td>' . $t->keterangan . '</td><td>' . strtoupper($t->jenis) . '</td><td>' . $t->nominal . '</td></tr>';
+        }
+        echo '</table>'; exit;
+    }
 }

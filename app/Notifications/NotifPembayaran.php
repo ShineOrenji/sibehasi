@@ -9,26 +9,26 @@ class NotifPembayaran extends Notification
 {
     use Queueable;
 
-    protected $judul;
-    protected $pesan;
+    protected $title;
+    protected $message;
 
-    public function __construct($judul, $pesan)
+    public function __construct($title, $message)
     {
-        $this->judul = $judul;
-        $this->pesan = $pesan;
+        $this->title = $title;
+        $this->message = $message;
     }
 
     public function via(object $notifiable): array
     {
-        return ['database']; // Hanya simpan ke database, tidak via email
+        return ['database']; 
     }
 
+    // Ganti toArray menjadi toDatabase, atau pastikan key-nya 'title' & 'message'
     public function toArray(object $notifiable): array
     {
         return [
-            'judul' => $this->judul,
-            'pesan' => $this->pesan,
-            'waktu' => now()->diffForHumans(),
+            'title' => $this->title,      // <--- Kunci utamanya di sini
+            'message' => $this->message,  // <--- Kunci utamanya di sini
         ];
     }
 }

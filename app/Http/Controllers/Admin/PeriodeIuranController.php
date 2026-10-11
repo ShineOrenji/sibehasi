@@ -11,15 +11,8 @@ class PeriodeIuranController extends Controller
 {
     public function index()
     {
-        // Ambil periode beserta kategori dan hitung jumlah yang sudah lunas
-        $periode = PeriodeIuran::with('kategori')
-            ->withCount(['pembayaran as lunas_count' => function ($query) {
-                $query->where('status', 'sukses');
-            }])
-            ->orderBy('created_at', 'desc')->get();
-            
-        // Ambil kategori khusus pemasukan untuk form
-        $kategori = KategoriTransaksi::where('jenis', 'pemasukan')->get();
+        $periode = \App\Models\PeriodeIuran::latest()->get();
+        $kategori = \App\Models\KategoriTransaksi::where('nama_kategori', '!=', 'Tidak Dikategorikan')->get();
         
         return view('admin.periode.index', compact('periode', 'kategori'));
     }
@@ -27,23 +20,25 @@ class PeriodeIuranController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'kategori_id' => 'required|exists:kategori_transaksi,id',
-            'nama_periode' => 'required|string|max:255',
-            'nominal' => 'required|numeric|min:0',
-            'tanggal_mulai' => 'required|date',
-            'deadline_pembayaran' => 'required|date|after_or_equal:tanggal_mulai',
+            'kategori_id' => 'required',
+            'nominal' => 'required|numeric',
+            'deadline_pembayaran' => 'required|date',
         ]);
 
-        PeriodeIuran::create([
+        $kategori = \App\Models\KategoriTransaksi::findOrFail($request->kategori_id);
+        
+        $namaOtomatis = $kategori->nama_kategori;
+
+        \App\Models\PeriodeIuran::create([
+            'nama_periode' => $namaOtomatis,
             'kategori_id' => $request->kategori_id,
-            'nama_periode' => $request->nama_periode, // Contoh: "Uang Kas Bulan Nov", "Pembayaran MABIM"
             'nominal' => $request->nominal,
-            'tanggal_mulai' => $request->tanggal_mulai,
+            'denda' => $request->denda ?? 0,
             'deadline_pembayaran' => $request->deadline_pembayaran,
             'status' => 'aktif',
         ]);
 
-        return back()->with('success', 'Tagihan baru berhasil dibuat!');
+        return back()->with('success', 'Tagihan berhasil dibuat!');
     }
 
     // Fitur Baru: Lihat Detail Pembayar
@@ -60,18 +55,33 @@ class PeriodeIuranController extends Controller
 
     public function destroy($id)
     {
-        $periode = \App\Models\PeriodeIuran::findOrFail($id);
+        \App\Models\PeriodeIuran::findOrFail($id)->delete();
         
-        // Proteksi: Jangan izinkan hapus jika sudah ada mahasiswa yang bayar!
-        // (Sesuai prinsip keamanan data keuangan)
-        if (\App\Models\PembayaranIuran::where('periode_id', $id)->where('status', 'sukses')->exists()) {
-            return back()->with('error', 'Gagal! Tagihan ini sudah memiliki data pembayaran (Lunas) dari mahasiswa.');
-        }
-        
-        // Hapus data pembayaran yang masih 'pending' (jika ada) agar tidak jadi sampah database
-        \App\Models\PembayaranIuran::where('periode_id', $id)->where('status', 'pending')->delete();
-
-        $periode->delete();
         return back()->with('success', 'Tagihan berhasil dihapus.');
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'kategori_id' => 'required',
+            'nominal' => 'required|numeric',
+            'deadline_pembayaran' => 'required|date',
+        ]);
+
+        $periode = \App\Models\PeriodeIuran::findOrFail($id);
+        $kategori = \App\Models\KategoriTransaksi::findOrFail($request->kategori_id);
+        
+        // Murni pakai nama kategori saja
+        $namaOtomatis = $kategori->nama_kategori;
+
+        $periode->update([
+            'nama_periode' => $namaOtomatis,
+            'kategori_id' => $request->kategori_id,
+            'nominal' => $request->nominal,
+            'denda' => $request->denda ?? 0,
+            'deadline_pembayaran' => $request->deadline_pembayaran,
+        ]);
+
+        return back()->with('success', 'Tagihan berhasil diperbarui!');
     }
 }

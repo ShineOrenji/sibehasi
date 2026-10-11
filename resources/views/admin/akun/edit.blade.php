@@ -19,8 +19,9 @@
                 <div class="mb-4">
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Role Jabatan</label>
                     <select name="role" class="w-full border-gray-300 rounded-lg shadow-sm" required>
-                        <option value="mahasiswa" {{ $user->role == 'mahasiswa' ? 'selected' : '' }}>Anggota Biasa</option>
+                        <option value="admin" {{ $akun->role == 'admin' ? 'selected' : '' }}>Admin</option>
                         <option value="ketua" {{ $user->role == 'ketua' ? 'selected' : '' }}>Ketua HIMASI</option>
+                        <option value="mahasiswa" {{ $user->role == 'mahasiswa' ? 'selected' : '' }}>Anggota Biasa</option>
                     </select>
                 </div>
                 <div class="mb-4">
@@ -34,7 +35,14 @@
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Angkatan</label>
-                        <input type="number" name="angkatan" value="{{ $user->anggota->angkatan ?? '' }}" class="w-full border-gray-300 rounded-lg shadow-sm" required>
+                        <select name="angkatan" class="w-full border-gray-300 rounded-lg shadow-sm" required>
+                            <option value="">-- Pilih Angkatan --</option>
+                            @for($i = date('Y'); $i >= 2021; $i--)
+                                <option value="{{ $i }}" {{ (isset($user->anggota) && $user->anggota->angkatan == $i) ? 'selected' : '' }}>
+                                    {{ $i }}
+                                </option>
+                            @endfor
+                        </select>
                     </div>
                 </div>
                 <div class="mb-6">

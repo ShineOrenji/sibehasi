@@ -22,14 +22,34 @@ class DashboardController extends Controller
 
     public function admin()
     {
-        $pemasukan = BukuKas::where('jenis', 'pemasukan')->sum('nominal');
-        $pengeluaran = BukuKas::where('jenis', 'pengeluaran')->sum('nominal');
-        $saldo = $pemasukan - $pengeluaran;
-        $totalAnggota = Anggota::count();
-        
-        $transaksiTerbaru = BukuKas::with('kategori')->orderBy('created_at', 'desc')->limit(5)->get();
+        // Hitung Total dari Buku Kas (Otomatis real-time)
+        $totalPemasukan = \App\Models\BukuKas::where('jenis', 'pemasukan')->sum('nominal');
+        $totalPengeluaran = \App\Models\BukuKas::where('jenis', 'pengeluaran')->sum('nominal');
+        $saldoAkhir = $totalPemasukan - $totalPengeluaran;
 
-        return view('dashboard.admin', compact('saldo', 'pemasukan', 'pengeluaran', 'totalAnggota', 'transaksiTerbaru'));
+        // Hitung Pemasukan Bulan Ini
+        $pemasukanBulanIni = \App\Models\BukuKas::where('jenis', 'pemasukan')
+                                ->whereMonth('tanggal_transaksi', now()->month)
+                                ->whereYear('tanggal_transaksi', now()->year)
+                                ->sum('nominal');
+
+        // Generate Data untuk Grafik (7 Hari Terakhir)
+        $chartDates = collect();
+        $chartPemasukan = collect();
+        $chartPengeluaran = collect();
+
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i)->format('Y-m-d');
+            $chartDates->push(\Carbon\Carbon::parse($date)->translatedFormat('d M'));
+            
+            $chartPemasukan->push(\App\Models\BukuKas::where('jenis', 'pemasukan')->whereDate('tanggal_transaksi', $date)->sum('nominal'));
+            $chartPengeluaran->push(\App\Models\BukuKas::where('jenis', 'pengeluaran')->whereDate('tanggal_transaksi', $date)->sum('nominal'));
+        }
+
+        return view('dashboard.admin', compact(
+            'saldoAkhir', 'totalPemasukan', 'totalPengeluaran', 'pemasukanBulanIni',
+            'chartDates', 'chartPemasukan', 'chartPengeluaran'
+        ));
     }
 
     public function mahasiswa()

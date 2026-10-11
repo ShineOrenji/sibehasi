@@ -1,120 +1,171 @@
 <x-app-layout>
-    <div class="pt-8 px-2">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="space-y-6">
+        
+        <!-- Header Salam -->
+        <div>
+            <h2 class="text-2xl font-extrabold text-gray-900">Halo, {{ Auth::user()->name }}! 👋</h2>
+            <p class="text-sm text-gray-500 font-medium mt-1">Berikut adalah ringkasan keuangan HIMASI hari ini.</p>
+        </div>
+
+        <!-- Kartu Statistik (Grid) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             
-            <div class="mb-8">
-                <h1 class="text-2xl font-bold text-gray-900">Dashboard Keuangan</h1>
-                <!-- PANEL NOTIFIKASI -->
-                <div class="mb-8 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold text-gray-800 flex items-center">
-                            🔔 Notifikasi 
-                            @if(Auth::user()->unreadNotifications->count() > 0)
-                                <span class="ml-2 bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded-full">{{ Auth::user()->unreadNotifications->count() }} Baru</span>
-                            @endif
-                        </h3>
-                    </div>
-
-                    <div class="space-y-3">
-                        @forelse(Auth::user()->notifications as $notif)
-                            <div class="p-4 rounded-lg flex justify-between items-start {{ $notif->read_at ? 'bg-gray-50' : 'bg-blue-50 border border-blue-100' }}">
-                                <div>
-                                    <h4 class="text-sm font-bold {{ $notif->read_at ? 'text-gray-700' : 'text-blue-700' }}">{{ $notif->data['judul'] }}</h4>
-                                    <p class="text-sm text-gray-600 mt-1">{{ $notif->data['pesan'] }}</p>
-                                    <span class="text-xs text-gray-400 mt-2 block">{{ $notif->created_at->diffForHumans() }}</span>
-                                </div>
-                                <div class="flex space-x-2">
-                                    @if(!$notif->read_at)
-                                        <form action="{{ route('notifikasi.read', $notif->id) }}" method="POST">
-                                            @csrf
-                                            <button type="submit" class="text-xs text-blue-600 hover:underline">Tandai Dibaca</button>
-                                        </form>
-                                    @endif
-                                    <form action="{{ route('notifikasi.destroy', $notif->id) }}" method="POST">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="text-xs text-rose-500 hover:underline">Hapus</button>
-                                    </form>
-                                </div>
-                            </div>
-                        @empty
-                            <p class="text-sm text-gray-500">Tidak ada notifikasi saat ini.</p>
-                        @endforelse
-                    </div>
+            <!-- Saldo Akhir -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow relative overflow-hidden">
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-blue-50 rounded-full opacity-50"></div>
+                <div class="relative z-10">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Saldo Kas</p>
+                    <h3 class="text-2xl font-extrabold text-gray-900 mt-1">Rp{{ number_format($saldoAkhir, 0, ',', '.') }}</h3>
                 </div>
-                <p class="text-sm text-gray-500">Ringkasan kas HIMASI hari ini.</p>
-            </div>
-
-            <!-- Cards Statistik -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Saldo</p>
-                    <h3 class="text-3xl font-bold text-gray-800">Rp{{ number_format($saldo, 0, ',', '.') }}</h3>
-                </div>
-                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Pemasukan</p>
-                    <h3 class="text-3xl font-bold text-emerald-600">Rp{{ number_format($pemasukan, 0, ',', '.') }}</h3>
-                </div>
-                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Pengeluaran</p>
-                    <h3 class="text-3xl font-bold text-rose-600">Rp{{ number_format($pengeluaran, 0, ',', '.') }}</h3>
-                </div>
-                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Anggota Aktif</p>
-                    <h3 class="text-3xl font-bold text-blue-600">{{ $totalAnggota }} <span class="text-sm font-normal text-gray-400">Orang</span></h3>
+                <div class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center text-xl shadow-lg shadow-blue-500/30 relative z-10">
+                    <i class="fa-solid fa-wallet"></i>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- Grafik (Chart.js) -->
-                <div class="lg:col-span-2 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Statistik Keuangan</h3>
-                    <canvas id="financeChart" height="100"></canvas>
+            <!-- Pemasukan Bulan Ini -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow relative overflow-hidden">
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-emerald-50 rounded-full opacity-50"></div>
+                <div class="relative z-10">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Masuk (Bulan Ini)</p>
+                    <h3 class="text-2xl font-extrabold text-emerald-600 mt-1">+Rp{{ number_format($pemasukanBulanIni, 0, ',', '.') }}</h3>
                 </div>
-
-                <!-- Transaksi Terbaru -->
-                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Transaksi Terbaru</h3>
-                    <div class="space-y-4">
-                        @forelse($transaksiTerbaru as $t)
-                        <div class="flex justify-between items-center pb-3 border-b border-gray-50 last:border-0">
-                            <div>
-                                <p class="text-sm font-medium text-gray-800">{{ $t->keterangan }}</p>
-                                <p class="text-xs text-gray-400">{{ \Carbon\Carbon::parse($t->tanggal_transaksi)->format('d M Y') }}</p>
-                            </div>
-                            <span class="text-sm font-bold {{ $t->jenis == 'pemasukan' ? 'text-emerald-600' : 'text-rose-600' }}">
-                                {{ $t->jenis == 'pemasukan' ? '+' : '-' }}Rp{{ number_format($t->nominal, 0, ',', '.') }}
-                            </span>
-                        </div>
-                        @empty
-                        <p class="text-sm text-gray-500">Belum ada transaksi.</p>
-                        @endforelse
-                    </div>
+                <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl relative z-10">
+                    <i class="fa-solid fa-arrow-trend-up"></i>
                 </div>
             </div>
 
+            <!-- Total Pemasukan -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow relative overflow-hidden">
+                <div class="relative z-10">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Pemasukan</p>
+                    <h3 class="text-xl font-bold text-gray-800 mt-1">Rp{{ number_format($totalPemasukan, 0, ',', '.') }}</h3>
+                </div>
+                <div class="w-10 h-10 bg-gray-50 text-gray-400 rounded-xl flex items-center justify-center relative z-10">
+                    <i class="fa-solid fa-download"></i>
+                </div>
+            </div>
+
+            <!-- Total Pengeluaran -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow relative overflow-hidden">
+                <div class="relative z-10">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Pengeluaran</p>
+                    <h3 class="text-xl font-bold text-gray-800 mt-1">Rp{{ number_format($totalPengeluaran, 0, ',', '.') }}</h3>
+                </div>
+                <div class="w-10 h-10 bg-gray-50 text-gray-400 rounded-xl flex items-center justify-center relative z-10">
+                    <i class="fa-solid fa-upload"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Area Grafik Keuangan -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold text-gray-900"><i class="fa-solid fa-chart-area text-blue-500 mr-2"></i> Grafik Arus Kas (7 Hari Terakhir)</h3>
+            </div>
+            <div class="h-80 w-full">
+                <canvas id="financeChart"></canvas>
+            </div>
         </div>
     </div>
 
     <!-- Script Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const ctx = document.getElementById('financeChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Pemasukan', 'Pengeluaran'],
-                datasets: [{
-                    label: 'Nominal (Rp)',
-                    data: [{{ $pemasukan }}, {{ $pengeluaran }}],
-                    backgroundColor: ['#10b981', '#f43f5e'],
-                    borderRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, grid: { borderDash: [2, 4] } } }
-            }
+        document.addEventListener("DOMContentLoaded", function() {
+            const ctx = document.getElementById('financeChart').getContext('2d');
+            
+            // Gradient Pemasukan (Biru)
+            let gradientPemasukan = ctx.createLinearGradient(0, 0, 0, 400);
+            gradientPemasukan.addColorStop(0, 'rgba(37, 99, 235, 0.2)');
+            gradientPemasukan.addColorStop(1, 'rgba(37, 99, 235, 0)');
+
+            // Gradient Pengeluaran (Merah)
+            let gradientPengeluaran = ctx.createLinearGradient(0, 0, 0, 400);
+            gradientPengeluaran.addColorStop(0, 'rgba(225, 29, 72, 0.2)');
+            gradientPengeluaran.addColorStop(1, 'rgba(225, 29, 72, 0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: {!! $chartDates->toJson() !!},
+                    datasets: [
+                        {
+                            label: 'Pemasukan (Rp)',
+                            data: {!! $chartPemasukan->toJson() !!},
+                            borderColor: '#2563eb', // blue-600
+                            backgroundColor: gradientPemasukan,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#2563eb',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            fill: true,
+                            tension: 0.4 // Membuat garis melengkung smooth
+                        },
+                        {
+                            label: 'Pengeluaran (Rp)',
+                            data: {!! $chartPengeluaran->toJson() !!},
+                            borderColor: '#e11d48', // rose-600
+                            backgroundColor: gradientPengeluaran,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#e11d48',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: { family: "'Figtree', sans-serif", weight: 'bold' },
+                                usePointStyle: true,
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleFont: { family: "'Figtree', sans-serif", size: 13 },
+                            bodyFont: { family: "'Figtree', sans-serif", size: 14, weight: 'bold' },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9', drawBorder: false },
+                            ticks: {
+                                font: { family: "'Figtree', sans-serif" },
+                                callback: function(value) {
+                                    if (value >= 1000000) return (value / 1000000) + ' Jt';
+                                    if (value >= 1000) return (value / 1000) + ' Rb';
+                                    return value;
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false, drawBorder: false },
+                            ticks: { font: { family: "'Figtree', sans-serif", weight: '500' } }
+                        }
+                    },
+                    interaction: { mode: 'index', intersect: false }
+                }
+            });
         });
     </script>
 </x-app-layout>

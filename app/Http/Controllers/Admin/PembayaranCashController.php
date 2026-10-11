@@ -6,12 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Anggota;
 use App\Models\PeriodeIuran;
-use App\Models\KategoriTransaksi;
 use App\Models\PembayaranIuran;
 use App\Models\BukuKas;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
 use App\Notifications\NotifPembayaran;
 
 class PembayaranCashController extends Controller
@@ -30,56 +28,61 @@ class PembayaranCashController extends Controller
             'periode_id' => 'required|exists:periode_iuran,id',
         ]);
 
-        $periode = PeriodeIuran::findOrFail($request->periode_id);
-        
-        // Cari kategori "Iuran Anggota" dari seeder kita
-        $kategori = KategoriTransaksi::where('nama_kategori', 'Iuran Anggota')->firstOrFail();
+        // Ambil data periode & anggota
+        $periode = PeriodeIuran::with('kategori')->findOrFail($request->periode_id);
+        $anggota = Anggota::with('user')->findOrFail($request->anggota_id);
 
-        // Gunakan DB Transaction demi keamanan data keuangan
+        // KODE PENYELAMAT (Agar kategori_id tidak pernah NULL)
+        $kategoriFallback = \App\Models\KategoriTransaksi::where('nama_kategori', 'Uang kas')->first();
+        $kategoriId = $periode->kategori_id ?? ($kategoriFallback ? $kategoriFallback->id : null);
+
+        // Jika tetap null, blokir dan kasih tau admin
+        if (!$kategoriId) {
+            return back()->with('error', 'Gagal Input Cash: Tagihan ini tidak punya kategori, dan kategori cadangan "Uang kas" juga tidak ditemukan di Master Kategori.');
+        }
+
         try {
-            DB::transaction(function () use ($request, $periode, $kategori) {
-                
-                // 1. Catat di tabel pembayaran_iuran
+            DB::transaction(function () use ($periode, $anggota, $kategoriId) {
+                // 1. Simpan Pembayaran
                 $pembayaran = PembayaranIuran::create([
-                    'anggota_id' => $request->anggota_id,
+                    'anggota_id' => $anggota->id,
                     'periode_id' => $periode->id,
-                    'nominal_bayar' => $periode->nominal,
+                    'nominal_bayar' => $periode->nominal_akhir,
                     'tanggal_bayar' => now(),
                     'metode_pembayaran' => 'cash',
                     'status' => 'sukses',
                     'admin_id' => Auth::id(),
                 ]);
 
-                // 2. Otomatis masukkan ke Buku Kas sebagai pemasukan
+                // 2. Otomatis masuk Buku Kas dengan kategori yang aman
                 BukuKas::create([
-                    'kategori_id' => $kategori->id,
+                    'kategori_id' => $kategoriId, // SEKARANG DIJAMIN AMAN TIDAK NULL
                     'jenis' => 'pemasukan',
-                    'nominal' => $periode->nominal,
+                    'nominal' => $periode->nominal_akhir,
                     'tanggal_transaksi' => now()->toDateString(),
-                    'keterangan' => 'Pembayaran iuran cash periode ' . $periode->nama_periode,
+                    'keterangan' => 'Pembayaran ' . $periode->nama_periode . ' dari ' . $anggota->user->name . ' (Cash)',
                     'pembayaran_iuran_id' => $pembayaran->id,
                     'admin_id' => Auth::id(),
                 ]);
             });
 
-            // Kirim Notifikasi ke Mahasiswa (KODE BARU)
-            $anggota = Anggota::with('user')->find($request->anggota_id);
-            if ($anggota && $anggota->user) {
-                $anggota->user->notify(new NotifPembayaran(
-                    'Pembayaran Cash Berhasil 🟢',
-                    'Pembayaran iuran tunai periode ' . $periode->nama_periode . ' sebesar Rp' . number_format($periode->nominal,0,',','.') . ' telah dikonfirmasi oleh Admin.'
+            // Notifikasi ke Mahasiswa
+            if ($anggota->user) {
+                $anggota->user->notify(new \App\Notifications\NotifPembayaran(
+                    'LUNAS: ' . $periode->nama_periode,
+                    'Halo ' . $anggota->user->name . ', pembayaran tunai Rp' . number_format($periode->nominal,0,',','.') . ' sudah kami terima!'
                 ));
             }
 
-            // Untuk notifikasi Admin di bawahnya, ganti variabel $mahasiswaUser->name menjadi $anggota->user->name
-            Auth::user()->notify(new NotifPembayaran(
-                'Kas Bertambah 💰',
-                'Anda telah mencatat pemasukan cash dari ' . $anggota->user->name . ' untuk periode ' . $periode->nama_periode . '.'
+            // Notifikasi ke Admin
+            Auth::user()->notify(new \App\Notifications\NotifPembayaran(
+                'Kas Masuk 💰',
+                $anggota->user->name . ' baru saja membayar cash untuk ' . $periode->nama_periode
             ));
 
-            return redirect()->route('admin.kas.index')->with('success', 'Pembayaran cash berhasil dicatat!');
+            return redirect()->route('admin.kas.index')->with('success', 'Pembayaran cash dari ' . $anggota->user->name . ' berhasil dicatat!');
         } catch (\Exception $e) {
-            return back()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
+            return back()->with('error', 'Error Sistem: ' . $e->getMessage());
         }
     }
 }
